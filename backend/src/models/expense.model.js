@@ -4,15 +4,19 @@ const expenseSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    minlength: 1,
+    maxlength: 100
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
+    min : 0.01
   },
   category: {
     type: String,
-    required: true
+    required: true,
+    trim : true
   },
   date: {
     type: Date,
