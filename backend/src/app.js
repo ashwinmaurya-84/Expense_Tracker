@@ -1,4 +1,6 @@
 const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
 
 const routes = require("./routes");
 const authRoutes = require("./routes/auth.routes");
@@ -9,6 +11,10 @@ const errorHandler = require("./middleware/error.middleware");
 const app = express();
 
 app.use(express.json());
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CLIENT_URL,
+}));
 
 app.use("/", routes);
 app.use("/auth", authRoutes);
