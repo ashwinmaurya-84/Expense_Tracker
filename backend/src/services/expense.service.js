@@ -79,9 +79,18 @@ const updateExpense = async ({ expenseId, userId, updateData }) => {
   return expense;
 };
 
+const deleteExpense = async ({ expenseId, userId }) => {
+  const expense = await Expense.findOneAndDelete({
+    _id: expenseId,
+    user: userId,
+  });
+  return expense;
+};
+
 module.exports = {
   createExpense,
   getExpenses,
   getExpenseById,
   updateExpense,
+  deleteExpense,
 }
