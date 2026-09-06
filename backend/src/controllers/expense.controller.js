@@ -1,7 +1,12 @@
 const Expense = require("../models/expense.model");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
-const { createExpense: createExpenseService, getExpenses: getExpenseService } = require("../services/expense.service");
+const { 
+  createExpense: createExpenseService, 
+  getExpenses: getExpenseService,
+  getExpenseById: getExpenseByIdService,
+  updateExpense: updateExpenseService,
+} = require("../services/expense.service");
 
 const createExpense = asyncHandler (async (req, res) => {
   const { title, amount, category, date } = req.body;
@@ -86,15 +91,12 @@ const getExpenses = asyncHandler (async (req, res) => {
   });
 
   return res.status(200).json(result);
-
-  
-
 });
 
-const getExpenseById = asyncHandler (async (req, res) => {
-  const expense = await Expense.findOne({
-    _id: req.params.id,
-    user: req.user._id,
+const getExpenseById = asyncHandler(async (req, res) => {
+  const expense = await getExpenseByIdService({
+    expenseId: req.params.id,
+    userId: req.user._id,
   });
 
   if (!expense) {
@@ -134,17 +136,11 @@ const updateExpense = asyncHandler (async (req, res) => {
   }
 
 
-  const updatedExpense = await Expense.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      user: req.user._id,
-    },
+  const updatedExpense = await updateExpenseService({
+    expenseId: req.params.id,
+    userId: req.user._id,
     updateData,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  });
 
   if (!updatedExpense) {
     throw new ApiError(404, "Expense not found");

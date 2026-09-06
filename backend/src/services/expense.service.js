@@ -59,8 +59,29 @@ const getExpenses = async ({
   };
 };
 
+const getExpenseById = async ({ expenseId, userId }) => {
+  return await Expense.findOne({
+    _id: expenseId,
+    user: userId,
+  });
+};
+
+const updateExpense = async ({ expenseId, userId, updateData }) => {
+  const expense = await Expense.findOneAndUpdate({
+    _id: expenseId,
+    user: userId,
+  }, 
+  updateData, 
+  {
+    new: true,
+    runValidators: true,
+  });
+  return expense;
+};
 
 module.exports = {
   createExpense,
   getExpenses,
+  getExpenseById,
+  updateExpense,
 }
