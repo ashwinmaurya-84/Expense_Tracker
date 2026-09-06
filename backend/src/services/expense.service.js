@@ -87,10 +87,35 @@ const deleteExpense = async ({ expenseId, userId }) => {
   return expense;
 };
 
+const getExpenseSummary = async ({ userId }) => {
+  const summary = await Expense.aggregate([
+    {
+      $match: {
+        user: userId,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalExpense: { $sum: "$amount"},
+        expenseCount: { $sum: 1},
+        averageExpense: { $avg : "$amount"},
+      },
+    },
+  ]);
+
+  return summary[0] || {
+    totalExpense: 0,
+    expenseCount: 0,
+    averageExpense: 0,
+  };
+};
+
 module.exports = {
   createExpense,
   getExpenses,
   getExpenseById,
   updateExpense,
   deleteExpense,
+  getExpenseSummary,
 }
