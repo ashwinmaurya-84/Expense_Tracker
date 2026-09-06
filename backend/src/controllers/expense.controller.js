@@ -8,6 +8,7 @@ const {
   updateExpense: updateExpenseService,
   deleteExpense: deleteExpenseService,
   getExpenseSummary: getExpenseSummaryService,
+  getMonthlySummary: getMonthlySummaryService,
 } = require("../services/expense.service");
 
 const createExpense = asyncHandler (async (req, res) => {
@@ -164,31 +165,11 @@ const getExpenseSummary = asyncHandler( async (req, res) =>{
 });
 
 const getMonthlySummary = asyncHandler( async (req, res)=>{
-  const monthly = await Expense.aggregate([
-    {
-      $match: {
-        user: req.user._id,
-      },
-    },
-    {
-      $group:{
-        _id:{
-          year: {$year: "$date"},
-          month: {$month: "$date"},
-        },
-        totalExpense: { $sum: "$amount"},
-        expenseCount: {$sum : 1},
-      },
-    },
-    {
-      $sort: {
-        "_id.year": 1,
-        "_id.month": 1,
-      },
-    },
-  ]);
+  const monthly = await getMonthlySummaryService({
+    userId: req.user._id,
+  });
 
-  return res.status(200).json({monthly,});
+  return res.status(200).json({ monthly });
 });
 
 

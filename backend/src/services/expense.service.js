@@ -111,6 +111,33 @@ const getExpenseSummary = async ({ userId }) => {
   };
 };
 
+
+const getMonthlySummary = async ({ userId }) => {
+  return await Expense.aggregate([
+    {
+      $match: {
+        user: userId,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$date" },
+          month: { $month: "$date" },
+        },
+        totalExpense: { $sum: "$amount" },
+        expenseCount: { $sum: 1 },
+      },
+    },
+    {
+      $sort: {
+        "_id.year": 1,
+        "_id.month": 1,
+      },
+    },
+  ]);
+};
+
 module.exports = {
   createExpense,
   getExpenses,
@@ -118,4 +145,5 @@ module.exports = {
   updateExpense,
   deleteExpense,
   getExpenseSummary,
+  getMonthlySummary,
 }
