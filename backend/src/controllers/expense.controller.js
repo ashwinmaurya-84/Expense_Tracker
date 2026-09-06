@@ -6,6 +6,7 @@ const {
   getExpenses: getExpenseService,
   getExpenseById: getExpenseByIdService,
   updateExpense: updateExpenseService,
+  deleteExpense: deleteExpenseService,
 } = require("../services/expense.service");
 
 const createExpense = asyncHandler (async (req, res) => {
@@ -209,9 +210,9 @@ const getMonthlySummary = asyncHandler( async (req, res)=>{
 
 
 const deleteExpense = asyncHandler (async (req, res) => {
-  const deletedExpense = await Expense.findOneAndDelete({
-    _id: req.params.id,
-    user: req.user._id,
+  const deletedExpense = await deleteExpenseService({
+    expenseId: req.params.id,
+    userId: req.user._id,
   });
 
   if (!deletedExpense) {
