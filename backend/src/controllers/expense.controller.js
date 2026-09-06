@@ -1,12 +1,21 @@
 const Expense = require("../models/expense.model");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
+const { createExpense: createExpenseService, getExpenses: getExpenseService } = require("../services/expense.service");
 
 const createExpense = asyncHandler (async (req, res) => {
   const { title, amount, category, date } = req.body;
 
-  if (!title || amount === undefined || amount === null || !category) {
+  if (title === undefined || amount === undefined || amount === null || !category) {
     throw new ApiError(400, "Title, amount and category are required.");
+  }
+
+  if (typeof title !== "string" || title.trim().length === 0) {
+    throw new ApiError(400, "Title must be a non-empty string.");
+  }
+
+  if (typeof category !== "string" || category.trim().length === 0) {
+    throw new ApiError(400, "Category must be a non-empty string.");
   }
 
   if(typeof amount !== "number" || amount <=0){
@@ -17,12 +26,12 @@ const createExpense = asyncHandler (async (req, res) => {
     throw new ApiError(400, "Invalid Date.");
   }
 
-  const expense = await Expense.create({
+  const expense = await createExpenseService({
     title,
     amount,
     category,
     date,
-    user: req.user._id,
+    userId: req.user._id,
   });
 
   return res.status(201).json({
@@ -38,11 +47,6 @@ const getExpenses = asyncHandler (async (req, res) => {
 
   const pageNum = Number(page);
   const limitNum = Number(limit);
-
-  const filter = {
-    user: req.user._id,
-  };
-  
 
   if(!allowedSortFields.includes(sortBy)){
     throw new ApiError(400, "Invalid Sort field.");
@@ -70,39 +74,20 @@ const getExpenses = asyncHandler (async (req, res) => {
     throw new ApiError(400, "startDate cannot be greater than endDate.");
   }
 
-
-  if(category){
-    filter.category = category;
-  }
-  if(startDate || endDate){
-    filter.date = {};
-   
-    if(startDate){
-      filter.date.$gte = new Date(startDate);
-    }
-    if(endDate){
-      filter.date.$lte = new Date(endDate);
-    }
-  }
-
-  const sortOrder = order === "asc"? 1 : -1;
-
-  const total = await Expense.countDocuments(filter);
-
-  const expenses = await Expense.find(filter)
-    .sort({[sortBy]: sortOrder})
-    .skip((pageNum - 1) * limitNum)
-    .limit(limitNum);
-
-  return res.status(200).json({
-    expenses,
-    pagination: {
-      total,
-      page: pageNum,
-      limit: limitNum,
-      totalPages: Math.ceil(total / limitNum)
-    }
+  const result = await getExpenseService({
+    userId: req.user._id,
+    category,
+    startDate,
+    endDate,
+    page: pageNum,
+    limit: limitNum,
+    sortBy,
+    order,
   });
+
+  return res.status(200).json(result);
+
+  
 
 });
 
@@ -124,9 +109,16 @@ const updateExpense = asyncHandler (async (req, res) => {
 
   const updateData = {};
 
+  if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
+    throw new ApiError(400, "Title must be a non-empty string.");
+  }
+
+  if (category !== undefined && (typeof category !== "string" || category.trim().length === 0)) {
+    throw new ApiError(400, "Category must be a non-empty string.");
+  }
   if (title !== undefined) updateData.title = title;
-  if (amount !== undefined) updateData.amount = amount;
   if (category !== undefined) updateData.category = category;
+  if (amount !== undefined) updateData.amount = amount;
   if (date !== undefined) updateData.date = date;
 
   if(Object.keys(updateData).length === 0) {
@@ -165,6 +157,60 @@ const updateExpense = asyncHandler (async (req, res) => {
 });
 
 
+const getExpenseSummary = asyncHandler( async (req, res) =>{
+  const summary = await Expense.aggregate([
+    {
+      $match:{
+        user: req.user._id,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalExpense: { $sum: "$amount" },
+        expenseCount: { $sum: 1 },
+        averageExpense: { $avg: "$amount"},
+      },
+    },
+  ]);
+
+  const result = summary[0] || {
+    totalExpense : 0,
+    expenseCount: 0,
+    averageExpense: 0,
+  };
+
+  return res.status(200).json(result);
+});
+
+const getMonthlySummary = asyncHandler( async (req, res)=>{
+  const monthly = await Expense.aggregate([
+    {
+      $match: {
+        user: req.user._id,
+      },
+    },
+    {
+      $group:{
+        _id:{
+          year: {$year: "$date"},
+          month: {$month: "$date"},
+        },
+        totalExpense: { $sum: "$amount"},
+        expenseCount: {$sum : 1},
+      },
+    },
+    {
+      $sort: {
+        "_id.year": 1,
+        "_id.month": 1,
+      },
+    },
+  ]);
+
+  return res.status(200).json({monthly,});
+});
+
 
 const deleteExpense = asyncHandler (async (req, res) => {
   const deletedExpense = await Expense.findOneAndDelete({
@@ -181,4 +227,4 @@ const deleteExpense = asyncHandler (async (req, res) => {
   });
 });
 
-module.exports = { createExpense, getExpenses, getExpenseById, updateExpense, deleteExpense };
+module.exports = { createExpense, getExpenses, getExpenseById, updateExpense, getExpenseSummary, getMonthlySummary, deleteExpense };
