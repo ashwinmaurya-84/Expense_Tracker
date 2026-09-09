@@ -1,71 +1,88 @@
 const validator = require("validator");
 const bcrypt = require("bcrypt");
-const User = require("../models/user.model")
+const jwt = require("jsonwebtoken");
 
-const register = async(req, res)=>{
+const User = require("../models/user.model");
+const ApiError = require("../utils/ApiError");
+const asyncHandler = require("../utils/asyncHandler");
+
+const { registerUser } = require("../services/auth.service");
+
+const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  if( !name || !email || !password){
-    return res.status(400).json({message:"Name, email, and password are required."});
-  }
-  if(!validator.isEmail(email)){
-    return res.status(400).json({message:"Please provide a valid email address."});
-  }
- 
-  
-  if (!validator.isStrongPassword(password, {
-      minLength: 8,
-      minUppercase: 1,
-      minNumbers: 1,
-      minSymbols: 0
-      })
-    ) {
-      return res.status(400).json({
-          message: "Password does not meet security requirements."
-      });
-  }
 
-  try {
-    const existingUser = await User.findOne({ email });
-    if(existingUser){
-      return res.status(400).json({message: "User already exists"});
+  const result = await registerUser({
+    name,
+    email,
+    password,
+  });
+
+  return res.status(201).json({
+    success: true,
+    message: "Registered successfully.",
+    data: result,
+  });
+});
+
+
+const login = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        throw new ApiError(400, "Email and password are required.");
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword
-    });
-    await newUser.save();
-    return res.status(201).json({ message: "Registered Successfully"});
-  } 
-  catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Something went wrong."});
-  }
-};
 
-const login = async(req, res)=>{
-  const { email, password } = req.body;
-  if( !email || !password){
-    return res.status(400).json({message:"Email and password are required."});
-  }
-  if(!validator.isEmail(email)){
-    return res.status(400).json({message:"Please provide a valid email address."});
-  }
+    if (!validator.isEmail(email)) {
+        throw new ApiError(400, "Please provide a valid email address.");
+    }
 
-  try {
     const user = await User.findOne({ email });
-    if ( !user ){
-      return res.status(401).json({ message: "Invalid email or password"});
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid){
-      return res.status(401).json({ message: "Invalid email or password"});
-    }
-    return res.status(200).json({ message: "Login Successful"});
-  }catch (err){
-    return res.status(500).json({ message: "Something went wrong"});
-  }
-};
 
-module.exports = {register, login};
+    if (!user) {
+        throw new ApiError(401, "Invalid email or password.");
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+        password,
+        user.password
+    );
+
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid email or password.");
+    }
+
+    const token = jwt.sign(
+        {
+            id: user._id,
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: "1d",
+        }
+    );
+
+    return res.status(200).json({
+        success: true,
+        message: "Login successful.",
+        data: {
+            token,
+        },
+    });
+});
+
+const getProfile = asyncHandler(async (req, res)=>{
+    
+    return res.status(200).json({
+        success: true,
+        message: "Profile retrieved successfully.",
+        data: {
+            user : req.user
+        }
+    });
+});
+
+module.exports = {
+    register,
+    login,
+    getProfile
+};
