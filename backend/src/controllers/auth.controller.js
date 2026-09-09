@@ -6,7 +6,7 @@ const User = require("../models/user.model");
 const ApiError = require("../utils/ApiError");
 const asyncHandler = require("../utils/asyncHandler");
 
-const { registerUser } = require("../services/auth.service");
+const { registerUser, loginUser } = require("../services/auth.service");
 
 const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -28,45 +28,16 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-        throw new ApiError(400, "Email and password are required.");
-    }
-
-    if (!validator.isEmail(email)) {
-        throw new ApiError(400, "Please provide a valid email address.");
-    }
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-        throw new ApiError(401, "Invalid email or password.");
-    }
-
-    const isPasswordValid = await bcrypt.compare(
+    const result = await loginUser({
+        email,
         password,
-        user.password
-    );
+    });
 
-    if (!isPasswordValid) {
-        throw new ApiError(401, "Invalid email or password.");
-    }
-
-    const token = jwt.sign(
-        {
-            id: user._id,
-        },
-        process.env.JWT_SECRET,
-        {
-            expiresIn: "1d",
-        }
-    );
 
     return res.status(200).json({
         success: true,
         message: "Login successful.",
-        data: {
-            token,
-        },
+        data: result,
     });
 });
 
