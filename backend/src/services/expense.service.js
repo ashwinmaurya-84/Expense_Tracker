@@ -32,11 +32,17 @@ const getExpenses = async ({
     filter.date = {};
 
     if (startDate) {
-      filter.date.$gte = new Date(startDate);
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+
+      filter.date.$gte = start;
     }
 
     if (endDate) {
-      filter.date.$lte = new Date(endDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filter.date.$lte = end;
     }
   }
 

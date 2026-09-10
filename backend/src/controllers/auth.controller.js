@@ -1,9 +1,3 @@
-const validator = require("validator");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-
-const User = require("../models/user.model");
-const ApiError = require("../utils/ApiError");
 const asyncHandler = require("../utils/asyncHandler");
 
 const { registerUser, loginUser } = require("../services/auth.service");

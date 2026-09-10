@@ -749,6 +749,8 @@ describe("GET /expenses - sorting", () => {
     const response = await request(app)
       .get("/expenses?sortBy=amount&order=desc")
       .set("Authorization", `Bearer ${token}`);
+    
+    console.log("SORT RESPONSE:", response.statusCode, response.body);
 
     expect(response.statusCode).toBe(200);
 
