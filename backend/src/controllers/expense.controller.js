@@ -1,4 +1,3 @@
-const Expense = require("../models/expense.model");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const { 

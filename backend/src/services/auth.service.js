@@ -28,7 +28,11 @@ const registerUser = async ({ name, email, password }) => {
     );
   }
 
-  const existingUser = await User.findOne({ email });
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const existingUser = await User.findOne({
+    email: normalizedEmail,
+  });
 
   if (existingUser) {
     throw new ApiError(409, "User already exists.");
@@ -38,7 +42,7 @@ const registerUser = async ({ name, email, password }) => {
 
   const newUser = await User.create({
     name,
-    email,
+    email: normalizedEmail,
     password: hashedPassword,
   });
 
@@ -58,8 +62,11 @@ const loginUser = async ({ email, password }) => {
   if (!validator.isEmail(email)) {
     throw new ApiError(400, "Please provide a valid email address.");
   }
+  const normalizedEmail = email.trim().toLowerCase();
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({
+    email: normalizedEmail
+  });
 
   if (!user) {
     throw new ApiError(401, "Invalid email or password.");

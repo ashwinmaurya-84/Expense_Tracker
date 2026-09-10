@@ -1,3 +1,8 @@
+const dns = require("dns");
+
+// Temporary workaround for the system DNS resolver refusing Node DNS queries.
+dns.setServers(["1.1.1.1"]);
+
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 const app = require("./app");
