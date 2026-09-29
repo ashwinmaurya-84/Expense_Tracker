@@ -131,6 +131,45 @@ function Dashboard({ onLogout }) {
     }
   };
 
+  const handleExportCsv = async () => {
+    try {
+      const params = new URLSearchParams();
+
+      if (category) params.append("category", category);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+
+      params.append("sortBy", "date");
+      params.append("order", sortOrder);
+
+      const response = await fetch(
+        `http://localhost:5000/expenses/export?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export expenses");
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = "expenses.csv";
+      link.click();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   return (
     <main>
       <Navbar
@@ -155,6 +194,10 @@ function Dashboard({ onLogout }) {
           <option value="Other">Other</option>
         </select>
       </section>
+
+      <button onClick={handleExportCsv}>
+        Export CSV
+      </button>
 
       <label>
         From:

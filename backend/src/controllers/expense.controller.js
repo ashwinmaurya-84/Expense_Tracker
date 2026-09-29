@@ -8,6 +8,7 @@ const {
   deleteExpense: deleteExpenseService,
   getExpenseSummary: getExpenseSummaryService,
   getMonthlySummary: getMonthlySummaryService,
+  getExpensesForExport: getExpensesForExportService,
 } = require("../services/expense.service");
 
 const createExpense = asyncHandler (async (req, res) => {
@@ -187,4 +188,47 @@ const deleteExpense = asyncHandler (async (req, res) => {
   });
 });
 
-module.exports = { createExpense, getExpenses, getExpenseById, updateExpense, getExpenseSummary, getMonthlySummary, deleteExpense };
+
+const escapeCsv = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return `"${String(value).replace(/"/g, '""')}"`;
+};
+
+const exportExpenses = asyncHandler(async (req, res) => {
+  const { category, startDate, endDate, sortBy, order } = req.query;
+
+  const expenses = await getExpensesForExportService({
+    userId: req.user._id,
+    category,
+    startDate,
+    endDate,
+    sortBy: sortBy || "date",
+    order: order || "desc",
+  });
+
+  const header = "Title,Amount,Category,Date";
+
+ const rows = expenses.map((expense) => {
+    return [
+      escapeCsv(expense.title),
+      expense.amount,
+      escapeCsv(expense.category),
+      escapeCsv(expense.date.toISOString()),
+    ].join(",");
+  });
+
+  const csv = [header, ...rows].join("\n");
+
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="expenses.csv"'
+  );
+
+  res.status(200).send(csv);
+});
+
+module.exports = { createExpense, getExpenses, getExpenseById, updateExpense, getExpenseSummary, getMonthlySummary, deleteExpense, exportExpenses };
