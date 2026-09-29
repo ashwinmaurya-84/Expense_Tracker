@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ExpenseForm from "./ExpenseForm";
 import Navbar from "./Navbar";
+import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts";
 
 function Dashboard({ onLogout }) {
   const [expenses, setExpenses] = useState([]);
@@ -10,6 +11,7 @@ function Dashboard({ onLogout }) {
   const [category, setCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [monthlySummary, setMonthlySummary] = useState([]);
   const [sortOrder, setSortOrder] = useState("desc");
 
   const [editingExpense, setEditingExpense] = useState(null);
@@ -18,6 +20,7 @@ function Dashboard({ onLogout }) {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
+  // Fetch expenses
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
@@ -68,8 +71,6 @@ function Dashboard({ onLogout }) {
         }
 
         setExpenses(data.expenses);
-
-        // Save pagination information
         setPagination(data.pagination);
       } catch (error) {
         setError("Something went wrong. Please try again.");
@@ -80,6 +81,39 @@ function Dashboard({ onLogout }) {
 
     fetchExpenses();
   }, [category, startDate, endDate, sortOrder, page]);
+
+  // Fetch monthly summary
+  useEffect(() => {
+    const fetchMonthlySummary = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          "http://localhost:5000/expenses/summary/monthly",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(
+            data.message || "Failed to fetch monthly summary."
+          );
+          return;
+        }
+
+        setMonthlySummary(data.monthly);
+      } catch (error) {
+        setError("Failed to fetch monthly summary.");
+      }
+    };
+
+    fetchMonthlySummary();
+  }, []);
 
   // Reset to page 1 whenever filters/sorting change
   useEffect(() => {
@@ -135,9 +169,17 @@ function Dashboard({ onLogout }) {
     try {
       const params = new URLSearchParams();
 
-      if (category) params.append("category", category);
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (category) {
+        params.append("category", category);
+      }
+
+      if (startDate) {
+        params.append("startDate", startDate);
+      }
+
+      if (endDate) {
+        params.append("endDate", endDate);
+      }
 
       params.append("sortBy", "date");
       params.append("order", sortOrder);
@@ -170,6 +212,13 @@ function Dashboard({ onLogout }) {
     }
   };
 
+  const chartData = monthlySummary.map((item) => ({
+    month: `${item._id.year}-${String(item._id.month).padStart(2, "0")}`,
+    totalExpense: item.totalExpense,
+  }));
+
+  console.log("Monthly Summary:", monthlySummary);
+
   return (
     <main>
       <Navbar
@@ -193,37 +242,55 @@ function Dashboard({ onLogout }) {
           <option value="Shopping">Shopping</option>
           <option value="Other">Other</option>
         </select>
+
+        <label>
+          From:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(event) => setStartDate(event.target.value)}
+          />
+        </label>
+
+        <label>
+          To:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+          />
+        </label>
+
+        <select
+          value={sortOrder}
+          onChange={(event) => setSortOrder(event.target.value)}
+        >
+          <option value="desc">Newest First</option>
+          <option value="asc">Oldest First</option>
+        </select>
+
+        <button onClick={handleExportCsv}>
+          Export CSV
+        </button>
       </section>
 
-      <button onClick={handleExportCsv}>
-        Export CSV
-      </button>
+      <div className="monthly-summary">
+        <h2>Monthly Expense Summary</h2>
 
-      <label>
-        From:
-        <input
-          type="date"
-          value={startDate}
-          onChange={(event) => setStartDate(event.target.value)}
-        />
-      </label>
-
-      <label>
-        To:
-        <input
-          type="date"
-          value={endDate}
-          onChange={(event) => setEndDate(event.target.value)}
-        />
-      </label>
-
-      <select
-        value={sortOrder}
-        onChange={(event) => setSortOrder(event.target.value)}
-      >
-        <option value="desc">Newest First</option>
-        <option value="asc">Oldest First</option>
-      </select>
+        {monthlySummary.length === 0 ? (
+          <p>No monthly expense data available.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="totalExpense" name="Total Expense" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
 
       <section>
         <h2>Summary</h2>
