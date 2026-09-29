@@ -10,15 +10,11 @@ const createExpense = async ({ title, amount, category, date, userId }) => {
   });
 };
 
-const getExpenses = async ({
+const buildExpenseFilter = ({
   userId,
   category,
   startDate,
   endDate,
-  page,
-  limit,
-  sortBy,
-  order,
 }) => {
   const filter = {
     user: userId,
@@ -46,6 +42,27 @@ const getExpenses = async ({
     }
   }
 
+  return filter;
+};
+
+const getExpenses = async ({
+  userId,
+  category,
+  startDate,
+  endDate,
+  page,
+  limit,
+  sortBy,
+  order,
+}) => {
+  const filter = buildExpenseFilter({
+    userId,
+    category,
+    startDate,
+    endDate,
+  });
+ 
+
   const sortOrder = order === "asc" ? 1 : -1;
 
   const total = await Expense.countDocuments(filter);
@@ -63,7 +80,29 @@ const getExpenses = async ({
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+const getExpensesForExport = async ({
+  userId,
+  category,
+  startDate,
+  endDate,
+  sortBy,
+  order,
+}) => {
+  const filter = buildExpenseFilter({
+    userId,
+    category,
+    startDate,
+    endDate,
+  });
+
+  const sortOrder = order === "asc" ? 1 : -1;
+
+  return await Expense.find(filter)
+    .sort({ [sortBy]: sortOrder });
 };
+
 
 const getExpenseById = async ({ expenseId, userId }) => {
   return await Expense.findOne({
@@ -147,6 +186,7 @@ const getMonthlySummary = async ({ userId }) => {
 module.exports = {
   createExpense,
   getExpenses,
+  getExpensesForExport,
   getExpenseById,
   updateExpense,
   deleteExpense,
