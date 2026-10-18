@@ -1,4 +1,4 @@
-function Navbar({ userName, onLogout  }) {
+function Navbar({ userName, onLogout }) {
   return (
     <nav>
       <h2>Expense Tracker</h2>

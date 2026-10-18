@@ -12,6 +12,7 @@ function Dashboard({ onLogout }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [monthlySummary, setMonthlySummary] = useState([]);
+  const [summaryError, setSummaryError] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
 
   const [editingExpense, setEditingExpense] = useState(null);
@@ -83,35 +84,36 @@ function Dashboard({ onLogout }) {
   }, [category, startDate, endDate, sortOrder, page]);
 
   // Fetch monthly summary
-  useEffect(() => {
-    const fetchMonthlySummary = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchMonthlySummary = async () => {
+    try {
+      setSummaryError("");
+      const token = localStorage.getItem("token");
 
-        const response = await fetch(
-          "http://localhost:5000/expenses/summary/monthly",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(
-            data.message || "Failed to fetch monthly summary."
-          );
-          return;
+      const response = await fetch(
+        "http://localhost:5000/expenses/summary/monthly",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-        setMonthlySummary(data.monthly);
-      } catch (error) {
-        setError("Failed to fetch monthly summary.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSummaryError(
+          data.message || "Failed to fetch monthly summary."
+        );
+        return;
       }
-    };
 
+      setMonthlySummary(data.monthly);
+    } catch {
+      setSummaryError("Failed to fetch monthly summary.");
+    }
+  };
+  
+  useEffect(() => {
     fetchMonthlySummary();
   }, []);
 
@@ -135,6 +137,7 @@ function Dashboard({ onLogout }) {
   };
 
   const handleDelete = async (expenseId) => {
+    setError("");
     try {
       const token = localStorage.getItem("token");
 
@@ -151,7 +154,7 @@ function Dashboard({ onLogout }) {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error(data.message);
+        setError(data.message || "Failed to delete expense.");
         return;
       }
 
@@ -160,8 +163,15 @@ function Dashboard({ onLogout }) {
           (expense) => expense._id !== expenseId
         )
       );
-    } catch (error) {
-      console.error("Delete expense error:", error);
+
+      fetchMonthlySummary();
+
+      if (expenses.length === 1 && page > 1){
+        setPage((currentPage) => currentPage - 1 );
+      }
+
+    } catch {
+      setError("Unable to connect to the server. Please try again.");
     }
   };
 
@@ -207,8 +217,8 @@ function Dashboard({ onLogout }) {
       link.click();
 
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      setError(error.message);
+    } catch {
+      setError("Unable to export CSV. Please try again.");
     }
   };
 
@@ -217,7 +227,6 @@ function Dashboard({ onLogout }) {
     totalExpense: item.totalExpense,
   }));
 
-  console.log("Monthly Summary:", monthlySummary);
 
   return (
     <main>
@@ -277,6 +286,8 @@ function Dashboard({ onLogout }) {
       <div className="monthly-summary">
         <h2>Monthly Expense Summary</h2>
 
+        {summaryError && <p>{summaryError}</p>}
+
         {monthlySummary.length === 0 ? (
           <p>No monthly expense data available.</p>
         ) : (
@@ -316,6 +327,7 @@ function Dashboard({ onLogout }) {
           });
 
           setEditingExpense(null);
+          fetchMonthlySummary();
         }}
       />
 

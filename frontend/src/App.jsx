@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./App.css";
 import Login from "./pages/Login";
 import Dashboard from "./components/Dashboard";
 
@@ -12,7 +13,7 @@ function App() {
   };
 
   return isLoggedIn ? (
-    <Dashboard onLogout={() => setIsLoggedIn(false)} />
+    <Dashboard onLogout={handleLogout} />
   ) : (
     <Login onLogin={() => setIsLoggedIn(true)} />
   );

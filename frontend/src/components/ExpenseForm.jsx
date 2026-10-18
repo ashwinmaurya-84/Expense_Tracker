@@ -54,16 +54,13 @@ function ExpenseForm({ expense, onExpenseAdded }) {
         return;
       }
 
-      console.log("Save expense response:", data);
-
       onExpenseAdded(data.expense);
 
       setTitle("");
       setAmount("");
       setCategory("");
-    } catch (error) {
-      console.error("Save expense error:", error);
-      setError("Something went wrong. Please try again.");
+    } catch {
+      setError("Unable to connect to the server. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +81,8 @@ function ExpenseForm({ expense, onExpenseAdded }) {
 
       <input
         type="number"
+        min="0.01"
+        step="0.01"
         placeholder="Amount"
         value={amount}
         onChange={(event) => setAmount(event.target.value)}
