@@ -123,28 +123,97 @@ Build the frontend for production:
 npm run build
 ```
 
-## API Overview
+## API Documentation
 
-The API uses JSON requests and JWT bearer-token authentication for protected routes.
+Base URL: `http://localhost:5000`
 
-| Method | Endpoint | Purpose |
+All expense routes and the profile route require JWT authentication, except registration and login.
+
+### Authentication
+
+| Method | Endpoint | Description | Authentication |
+|---|---|---|---|
+| POST | `/auth/register` | Register a new user | No |
+| POST | `/auth/login` | Log in and receive authentication data | No |
+| GET | `/auth/profile` | Retrieve the authenticated user's profile | Bearer token |
+
+### Expenses
+
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/auth/register` | Register a user |
-| POST | `/auth/login` | Authenticate a user |
-| GET | `/expenses` | List expenses |
 | POST | `/expenses` | Create an expense |
-| GET | `/expenses/:id` | Retrieve an expense |
+| GET | `/expenses` | List expenses with filtering, sorting, and pagination |
+| GET | `/expenses/:id` | Retrieve an expense by ID |
 | PATCH | `/expenses/:id` | Update an expense |
 | DELETE | `/expenses/:id` | Delete an expense |
-| GET | `/expenses/summary/monthly` | Retrieve monthly expense analytics |
+| GET | `/expenses/summary` | Retrieve expense summary |
+| GET | `/expenses/summary/monthly` | Retrieve monthly expense summary |
+| GET | `/expenses/export` | Export expenses as CSV |
 
-Protected endpoints require:
+### Authentication Header
+
+For protected endpoints, send the JWT in the request header:
 
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-Expense listing supports category filtering, date-range filtering, sorting, and pagination through query parameters.
+### Expense List Query Parameters
+
+The `GET /expenses` endpoint supports these query parameters:
+
+| Parameter | Description | Default |
+|---|---|---|
+| `category` | Filter by category | No filter |
+| `startDate` | Filter from a start date | No minimum date |
+| `endDate` | Filter through an end date | No maximum date |
+| `page` | Page number (positive integer) | `1` |
+| `limit` | Results per page (1–100) | `10` |
+| `sortBy` | Sort field: `date`, `amount`, `title`, or `createdAt` | `date` |
+| `order` | Sort direction: `asc` or `desc` | `desc` |
+
+Example:
+
+```http
+GET /expenses?category=Food&page=1&limit=10&sortBy=date&order=desc
+```
+
+### Create Expense
+
+`POST /expenses`
+
+Example request body:
+
+```json
+{
+  "title": "Lunch",
+  "amount": 250,
+  "category": "Food",
+  "date": "2026-10-19"
+}
+```
+
+`title`, `amount`, and `category` are required. `amount` must be a positive number. `date` is optional.
+
+### Update Expense
+
+`PATCH /expenses/:id`
+
+Send one or more fields to update:
+
+```json
+{
+  "title": "Dinner",
+  "amount": 400
+}
+```
+
+### Export Expenses
+
+`GET /expenses/export`
+
+Returns a CSV file named `expenses.csv` with the columns `Title`, `Amount`, `Category`, and `Date`. The endpoint accepts category, date-range, and sorting query parameters.
+
 
 ## Project Status
 
@@ -169,3 +238,4 @@ Expense listing supports category filtering, date-range filtering, sorting, and 
 **Ashwin Maurya**
 
 GitHub: [ashwinmaurya-84](https://github.com/ashwinmaurya-84)
+~
