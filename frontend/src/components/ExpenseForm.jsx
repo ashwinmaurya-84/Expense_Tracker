@@ -1,24 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 function ExpenseForm({ expense, onExpenseAdded }) {
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
+  const [title, setTitle] = useState(expense?.title ?? "");
+  const [amount, setAmount] = useState(
+    expense ? String(expense.amount) : ""
+  );
+  const [category, setCategory] = useState(expense?.category ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (expense) {
-      setTitle(expense.title);
-      setAmount(String(expense.amount));
-      setCategory(expense.category);
-    } else {
-      setTitle("");
-      setAmount("");
-      setCategory("");
-    }
-  }, [expense]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -69,7 +60,7 @@ function ExpenseForm({ expense, onExpenseAdded }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Add Expense</h2>
+      <h2>{expense ? "Edit Expense" : "Add Expense"}</h2>
 
       {error && <p>{error}</p>}
 
@@ -78,6 +69,7 @@ function ExpenseForm({ expense, onExpenseAdded }) {
         placeholder="Title"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
+        required
       />
 
       <input
@@ -87,6 +79,7 @@ function ExpenseForm({ expense, onExpenseAdded }) {
         placeholder="Amount"
         value={amount}
         onChange={(event) => setAmount(event.target.value)}
+        required
       />
 
       <input
@@ -94,6 +87,7 @@ function ExpenseForm({ expense, onExpenseAdded }) {
         placeholder="Category"
         value={category}
         onChange={(event) => setCategory(event.target.value)}
+        required
       />
 
       <button type="submit" disabled={isSubmitting}>

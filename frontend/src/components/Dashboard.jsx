@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-const API_URL = import.meta.env.VITE_API_URL;
 import ExpenseForm from "./ExpenseForm";
 import Navbar from "./Navbar";
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Dashboard({ onLogout }) {
   const [expenses, setExpenses] = useState([]);
@@ -74,7 +74,7 @@ function Dashboard({ onLogout }) {
 
         setExpenses(data.expenses);
         setPagination(data.pagination);
-      } catch (error) {
+      } catch {
         setError("Something went wrong. Please try again.");
       } finally {
         setLoading(false);
@@ -85,44 +85,46 @@ function Dashboard({ onLogout }) {
   }, [category, startDate, endDate, sortOrder, page]);
 
   // Fetch monthly summary
-  const fetchMonthlySummary = async () => {
-    try {
-      setSummaryError("");
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `${API_URL}/expenses/summary/monthly`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setSummaryError(
-          data.message || "Failed to fetch monthly summary."
-        );
-        return;
-      }
-
-      setMonthlySummary(data.monthly);
-    } catch {
-      setSummaryError("Failed to fetch monthly summary.");
-    }
-  };
-  
+   
   useEffect(() => {
-    fetchMonthlySummary();
+    const controller = new AbortController();
+
+    const loadSummary = async () => {
+      try {
+        setSummaryError("");
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          `${API_URL}/expenses/summary/monthly`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setSummaryError(data.message || "Failed to fetch monthly summary.");
+          return;
+        }
+
+        setMonthlySummary(data.monthly);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setSummaryError("Failed to fetch monthly summary.");
+        }
+      }
+    };
+
+    loadSummary();
+
+    return () => controller.abort();
   }, []);
 
-  // Reset to page 1 whenever filters/sorting change
-  useEffect(() => {
-    setPage(1);
-  }, [category, startDate, endDate, sortOrder]);
-
+  
   const totalExpense = expenses.reduce(
     (total, expense) => total + expense.amount,
     0
@@ -164,8 +166,6 @@ function Dashboard({ onLogout }) {
           (expense) => expense._id !== expenseId
         )
       );
-
-      fetchMonthlySummary();
 
       if (expenses.length === 1 && page > 1){
         setPage((currentPage) => currentPage - 1 );
@@ -313,6 +313,7 @@ function Dashboard({ onLogout }) {
       </section>
 
       <ExpenseForm
+        key={editingExpense?._id ?? "new-expense"}
         expense={editingExpense}
         onExpenseAdded={(savedExpense) => {
           setExpenses((currentExpenses) => {
@@ -328,7 +329,6 @@ function Dashboard({ onLogout }) {
           });
 
           setEditingExpense(null);
-          fetchMonthlySummary();
         }}
       />
 
