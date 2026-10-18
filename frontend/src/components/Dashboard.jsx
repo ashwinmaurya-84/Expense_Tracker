@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+const API_URL = import.meta.env.VITE_API_URL;
 import ExpenseForm from "./ExpenseForm";
 import Navbar from "./Navbar";
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts";
@@ -56,7 +57,7 @@ function Dashboard({ onLogout }) {
           : "";
 
         const response = await fetch(
-          `http://localhost:5000/expenses${query}`,
+          `${API_URL}/expenses${query}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -90,7 +91,7 @@ function Dashboard({ onLogout }) {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "http://localhost:5000/expenses/summary/monthly",
+        `${API_URL}/expenses/summary/monthly`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -142,7 +143,7 @@ function Dashboard({ onLogout }) {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `http://localhost:5000/expenses/${expenseId}`,
+        `${API_URL}/expenses/${expenseId}`,
         {
           method: "DELETE",
           headers: {
@@ -195,7 +196,7 @@ function Dashboard({ onLogout }) {
       params.append("order", sortOrder);
 
       const response = await fetch(
-        `http://localhost:5000/expenses/export?${params.toString()}`,
+        `${API_URL}/expenses/export?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

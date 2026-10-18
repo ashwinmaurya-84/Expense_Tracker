@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function ExpenseForm({ expense, onExpenseAdded }) {
   const [title, setTitle] = useState("");
@@ -29,8 +30,8 @@ function ExpenseForm({ expense, onExpenseAdded }) {
       const token = localStorage.getItem("token");
 
       const url = expense
-        ? `http://localhost:5000/expenses/${expense._id}`
-        : "http://localhost:5000/expenses";
+        ? `${API_URL}/expenses/${expense._id}`
+        : `${API_URL}/expenses`;
 
       const method = expense ? "PATCH" : "POST";
 
