@@ -1,395 +1,119 @@
 import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import ExpenseForm from "./ExpenseForm";
 import Navbar from "./Navbar";
-import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer} from "recharts";
+
 const API_URL = import.meta.env.VITE_API_URL;
+const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 });
+const displayDate = (value) => new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 
 function Dashboard({ onLogout }) {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [category, setCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [monthlySummary, setMonthlySummary] = useState([]);
   const [summaryError, setSummaryError] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
-
   const [editingExpense, setEditingExpense] = useState(null);
-
-  // Pagination
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
-  // Fetch expenses
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
         setLoading(true);
         setError("");
-
-        const token = localStorage.getItem("token");
-
-        const params = new URLSearchParams();
-
-        if (category) {
-          params.append("category", category);
-        }
-
-        if (startDate) {
-          params.append("startDate", startDate);
-        }
-
-        if (endDate) {
-          params.append("endDate", endDate);
-        }
-
-        if (sortOrder) {
-          params.append("order", sortOrder);
-        }
-
-        params.append("page", page);
-        params.append("limit", 10);
-
-        const query = params.toString()
-          ? `?${params.toString()}`
-          : "";
-
-        const response = await fetch(
-          `${API_URL}/expenses${query}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
+        const params = new URLSearchParams({ page: String(page), limit: "10", order: sortOrder });
+        if (category) params.append("category", category);
+        if (startDate) params.append("startDate", startDate);
+        if (endDate) params.append("endDate", endDate);
+        const response = await fetch(`${API_URL}/expenses?${params.toString()}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
         const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.message || "Failed to fetch expenses.");
-          return;
-        }
-
+        if (!response.ok) { setError(data.message || "Failed to fetch expenses."); return; }
         setExpenses(data.expenses);
         setPagination(data.pagination);
-      } catch {
-        setError("Something went wrong. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+      } catch { setError("Something went wrong. Please try again."); }
+      finally { setLoading(false); }
     };
-
     fetchExpenses();
   }, [category, startDate, endDate, sortOrder, page]);
 
-  // Fetch monthly summary
-   
   useEffect(() => {
     const controller = new AbortController();
-
     const loadSummary = async () => {
       try {
         setSummaryError("");
-        const token = localStorage.getItem("token");
-
-        const response = await fetch(
-          `${API_URL}/expenses/summary/monthly`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: controller.signal,
-          }
-        );
-
+        const response = await fetch(`${API_URL}/expenses/summary/monthly`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }, signal: controller.signal });
         const data = await response.json();
-
-        if (!response.ok) {
-          setSummaryError(data.message || "Failed to fetch monthly summary.");
-          return;
-        }
-
+        if (!response.ok) { setSummaryError(data.message || "Failed to fetch monthly summary."); return; }
         setMonthlySummary(data.monthly);
-      } catch (error) {
-        if (error.name !== "AbortError") {
-          setSummaryError("Failed to fetch monthly summary.");
-        }
-      }
+      } catch (requestError) { if (requestError.name !== "AbortError") setSummaryError("Failed to fetch monthly summary."); }
     };
-
     loadSummary();
-
     return () => controller.abort();
   }, []);
 
-  
-  const totalExpense = expenses.reduce(
-    (total, expense) => total + expense.amount,
-    0
-  );
-
-  const expenseCount = expenses.length;
-
-  const averageExpense =
-    expenseCount === 0 ? 0 : totalExpense / expenseCount;
-
-  const handleEdit = (expense) => {
-    setEditingExpense(expense);
-  };
+  const totalExpense = expenses.reduce((total, expense) => total + expense.amount, 0);
+  const averageExpense = expenses.length ? totalExpense / expenses.length : 0;
+  const chartData = monthlySummary.map((item) => ({ month: `${item._id.year}-${String(item._id.month).padStart(2, "0")}`, totalExpense: item.totalExpense }));
+  const resetPage = (setter) => (event) => { setPage(1); setter(event.target.value); };
 
   const handleDelete = async (expenseId) => {
     setError("");
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `${API_URL}/expenses/${expenseId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const response = await fetch(`${API_URL}/expenses/${expenseId}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
       const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || "Failed to delete expense.");
-        return;
-      }
-
-      setExpenses((currentExpenses) =>
-        currentExpenses.filter(
-          (expense) => expense._id !== expenseId
-        )
-      );
-
-      if (expenses.length === 1 && page > 1){
-        setPage((currentPage) => currentPage - 1 );
-      }
-
-    } catch {
-      setError("Unable to connect to the server. Please try again.");
-    }
+      if (!response.ok) { setError(data.message || "Failed to delete expense."); return; }
+      setExpenses((current) => current.filter((expense) => expense._id !== expenseId));
+      if (expenses.length === 1 && page > 1) setPage((current) => current - 1);
+    } catch { setError("Unable to connect to the server. Please try again."); }
   };
 
   const handleExportCsv = async () => {
     try {
-      const params = new URLSearchParams();
-
-      if (category) {
-        params.append("category", category);
-      }
-
-      if (startDate) {
-        params.append("startDate", startDate);
-      }
-
-      if (endDate) {
-        params.append("endDate", endDate);
-      }
-
-      params.append("sortBy", "date");
-      params.append("order", sortOrder);
-
-      const response = await fetch(
-        `${API_URL}/expenses/export?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to export expenses");
-      }
-
-      const blob = await response.blob();
-
-      const url = window.URL.createObjectURL(blob);
+      const params = new URLSearchParams({ sortBy: "date", order: sortOrder });
+      if (category) params.append("category", category);
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      const response = await fetch(`${API_URL}/expenses/export?${params.toString()}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      if (!response.ok) throw new Error("Failed to export expenses");
+      const url = window.URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
-
-      link.href = url;
-      link.download = "expenses.csv";
-      link.click();
-
-      window.URL.revokeObjectURL(url);
-    } catch {
-      setError("Unable to export CSV. Please try again.");
-    }
+      link.href = url; link.download = "expenses.csv"; link.click(); window.URL.revokeObjectURL(url);
+    } catch { setError("Unable to export CSV. Please try again."); }
   };
 
-  const chartData = monthlySummary.map((item) => ({
-    month: `${item._id.year}-${String(item._id.month).padStart(2, "0")}`,
-    totalExpense: item.totalExpense,
-  }));
-
-
   return (
-    <main>
-      <Navbar
-        userName="Ashwin"
-        onLogout={onLogout}
-      />
-
-      <h1>Dashboard</h1>
-
-      <section>
-        <h2>Filter Expenses</h2>
-
-        <select
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-        >
-          <option value="">All Categories</option>
-          <option value="Food">Food</option>
-          <option value="Travel">Travel</option>
-          <option value="Bills">Bills</option>
-          <option value="Shopping">Shopping</option>
-          <option value="Other">Other</option>
-        </select>
-
-        <label>
-          From:
-          <input
-            type="date"
-            value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-          />
-        </label>
-
-        <label>
-          To:
-          <input
-            type="date"
-            value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-          />
-        </label>
-
-        <select
-          value={sortOrder}
-          onChange={(event) => setSortOrder(event.target.value)}
-        >
-          <option value="desc">Newest First</option>
-          <option value="asc">Oldest First</option>
-        </select>
-
-        <button onClick={handleExportCsv}>
-          Export CSV
-        </button>
+    <main className="app-shell">
+      <Navbar userName="Ashwin" onLogout={onLogout} />
+      <section className="page-intro">
+        <div><p className="eyebrow">Overview</p><h1>Your spending, at a glance.</h1><p className="intro-copy">Review recent expenses and stay on top of your monthly habits.</p></div>
       </section>
 
-      <div className="monthly-summary">
-        <h2>Monthly Expense Summary</h2>
+      <section className="panel filter-panel" aria-label="Filter expenses">
+        <div className="section-heading"><div><h2>Find expenses</h2><p>Narrow down the records shown below.</p></div></div>
+        <div className="filter-grid">
+          <div className="field"><label htmlFor="filter-category">Category</label><select id="filter-category" value={category} onChange={resetPage(setCategory)}><option value="">All categories</option><option value="Food">Food</option><option value="Travel">Travel</option><option value="Bills">Bills</option><option value="Shopping">Shopping</option><option value="Other">Other</option></select></div>
+          <div className="field"><label htmlFor="filter-from">From date</label><input id="filter-from" type="date" value={startDate} onChange={resetPage(setStartDate)} /></div>
+          <div className="field"><label htmlFor="filter-to">To date</label><input id="filter-to" type="date" value={endDate} onChange={resetPage(setEndDate)} /></div>
+          <div className="field"><label htmlFor="sort-order">Sort by date</label><select id="sort-order" value={sortOrder} onChange={resetPage(setSortOrder)}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></div>
+          <button className="button button-secondary" onClick={handleExportCsv}>Export CSV</button>
+        </div>
+      </section>
 
-        {summaryError && <p>{summaryError}</p>}
-
-        {monthlySummary.length === 0 ? (
-          <p>No monthly expense data available.</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="totalExpense" name="Total Expense" />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+      <div className="dashboard-grid">
+        <div className="main-column">
+          <section className="panel chart-panel"><div className="section-heading"><div><h2>Monthly spending</h2><p>Expense total by month.</p></div></div>{summaryError && <p className="error-message">{summaryError}</p>}{monthlySummary.length ? <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{ top: 5, right: 4, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="#e3ebe6" /><XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#66746e", fontSize: 12 }} /><YAxis tickLine={false} axisLine={false} tick={{ fill: "#66746e", fontSize: 12 }} /><Tooltip cursor={{ fill: "#f1f5f3" }} formatter={(value) => currency.format(value)} /><Bar dataKey="totalExpense" name="Total expense" fill="#176b59" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div> : <p className="empty-state">No monthly expense data available yet.</p>}</section>
+          <section className="panel expenses-panel"><div className="section-heading"><div><h2>Recent expenses</h2><p>{pagination?.total ?? expenses.length} record{(pagination?.total ?? expenses.length) === 1 ? "" : "s"} found</p></div></div>{loading && <p className="status-message">Loading expenses…</p>}{error && <p className="error-message">{error}</p>}{!loading && !error && (expenses.length ? <div className="expense-list">{expenses.map((expense) => <article className="expense-row" key={expense._id}><div><h3 className="expense-title">{expense.title}</h3><span className="expense-date">{displayDate(expense.date)}</span></div><div className="expense-amount"><span className="mobile-label">Amount</span>{currency.format(expense.amount)}</div><div className="expense-category"><span className="mobile-label">Category</span><span className="category-tag">{expense.category}</span></div><div className="row-actions"><button className="row-action" onClick={() => setEditingExpense(expense)}>Edit</button><button className="row-action delete" onClick={() => handleDelete(expense._id)}>Delete</button></div></article>)}</div> : <p className="empty-state">No expenses match these filters.</p>)}{pagination && pagination.totalPages > 1 && <nav className="pagination" aria-label="Expense pagination"><button className="button button-secondary" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Page {pagination.page} of {pagination.totalPages}</span><button className="button button-secondary" disabled={page >= pagination.totalPages} onClick={() => setPage((current) => current + 1)}>Next</button></nav>}</section>
+        </div>
+        <aside className="side-column">
+          <section className="summary-grid" aria-label="Expense summary"><article className="summary-card"><span className="label">This page total</span><strong>{currency.format(totalExpense)}</strong></article><article className="summary-card"><span className="label">Expenses shown</span><strong>{expenses.length}</strong></article><article className="summary-card"><span className="label">Average expense</span><strong>{currency.format(averageExpense)}</strong></article></section>
+          <ExpenseForm key={editingExpense?._id ?? "new-expense"} expense={editingExpense} onCancel={() => setEditingExpense(null)} onExpenseAdded={(savedExpense) => { setExpenses((current) => editingExpense ? current.map((expense) => expense._id === savedExpense._id ? savedExpense : expense) : [savedExpense, ...current]); setEditingExpense(null); }} />
+        </aside>
       </div>
-
-      <section>
-        <h2>Summary</h2>
-
-        <p>Total Expenses: ₹{totalExpense}</p>
-        <p>Number of Expenses: {expenseCount}</p>
-        <p>Average Expense: ₹{averageExpense.toFixed(2)}</p>
-      </section>
-
-      <ExpenseForm
-        key={editingExpense?._id ?? "new-expense"}
-        expense={editingExpense}
-        onExpenseAdded={(savedExpense) => {
-          setExpenses((currentExpenses) => {
-            if (!editingExpense) {
-              return [savedExpense, ...currentExpenses];
-            }
-
-            return currentExpenses.map((expense) =>
-              expense._id === savedExpense._id
-                ? savedExpense
-                : expense
-            );
-          });
-
-          setEditingExpense(null);
-        }}
-      />
-
-      {loading && <p>Loading expenses...</p>}
-      {error && <p>{error}</p>}
-
-      {!loading && !error && (
-        <section>
-          <h2>Expenses</h2>
-
-          {expenses.length === 0 ? (
-            <p>No expenses found.</p>
-          ) : (
-            expenses.map((expense) => (
-              <div key={expense._id}>
-                <h3>{expense.title}</h3>
-                <p>₹{expense.amount}</p>
-                <p>{expense.category}</p>
-
-                <button onClick={() => handleEdit(expense)}>
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleDelete(expense._id)}
-                >
-                  Delete
-                </button>
-              </div>
-            ))
-          )}
-        </section>
-      )}
-
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
-        <section>
-          <button
-            disabled={page <= 1}
-            onClick={() =>
-              setPage((current) => current - 1)
-            }
-          >
-            Previous
-          </button>
-
-          <span>
-            {" "}
-            Page {pagination.page} of {pagination.totalPages}{" "}
-          </span>
-
-          <button
-            disabled={page >= pagination.totalPages}
-            onClick={() =>
-              setPage((current) => current + 1)
-            }
-          >
-            Next
-          </button>
-        </section>
-      )}
     </main>
   );
 }
