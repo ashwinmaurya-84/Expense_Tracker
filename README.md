@@ -1,47 +1,64 @@
 # Expense Tracker
 
-A full-stack expense management application built with React, Node.js, Express, and MongoDB. It supports authenticated expense management, filtering, pagination, sorting, and monthly expense analytics.
+A full-stack expense management application built with React, Node.js, Express, and MongoDB. Track expenses, manage transactions, analyze spending, and export expense data through a REST API.
+
+## Live Demo
+
+- **Frontend:** https://expense-tracker-9qv69e8ak-ashwinmaurya-dev.vercel.app
+- **Backend API:** https://expense-tracker-api-kf0g.onrender.com
+- **Repository:** https://github.com/ashwinmaurya-84/Expense_Tracker
 
 ## Features
 
-- User registration and login with JWT authentication
-- Password hashing with bcrypt
-- Create, read, update, and delete expenses
-- User-specific expense access
-- Filter expenses by category and date range
-- Sort and paginate expense records
-- Monthly expense analytics with chart visualization
-- Centralized error handling and input validation
-- Automated backend tests using Jest and Supertest
+- **Authentication:** User registration, login, and protected profile endpoint.
+- **Expense Management:** Create, retrieve, update, and delete expenses.
+- **Filtering & Sorting:** Filter expenses by category and date range; sort by supported fields.
+- **Pagination:** Retrieve expense records in manageable pages.
+- **Expense Analytics:** Access expense summaries and monthly summaries.
+- **CSV Export:** Export expense records to a CSV file.
+- **API Security:** JWT authentication, password hashing, security headers, and login rate limiting.
+- **Input Validation:** Validate expense data and request parameters.
+- **Automated Testing:** Backend tests using Jest and Supertest.
+- **Responsive Frontend:** React-based interface for managing expenses.
 
 ## Tech Stack
 
-**Frontend**
-- React
-- Vite
-- JavaScript
-- Recharts
+| Layer | Technologies |
+|---|---|
+| Frontend | React, Vite, JavaScript |
+| Backend | Node.js, Express.js |
+| Database | MongoDB, Mongoose |
+| Authentication | JSON Web Tokens (JWT), bcrypt |
+| Security | Helmet, CORS, express-rate-limit |
+| Validation | Validator |
+| Testing | Jest, Supertest |
+| Deployment | Vercel, Render |
+| API Testing | Postman / Thunder Client |
 
-**Backend**
-- Node.js
-- Express.js
-- MongoDB Atlas
-- Mongoose
-- JWT
-- bcrypt
+## Architecture
 
-**Testing and Tools**
-- Jest
-- Supertest
-- Postman / Thunder Client
-- Git and GitHub
+```text
+React Frontend (Vercel)
+        |
+        | HTTP requests / JWT
+        v
+Express REST API (Render)
+        |
+        +-- Authentication
+        +-- Expense Management
+        +-- Filtering & Pagination
+        +-- Analytics & CSV Export
+        |
+        v
+MongoDB Atlas
+```
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js and npm
-- MongoDB database
+- MongoDB Atlas account or a local MongoDB instance
 - Git
 
 ### 1. Clone the repository
@@ -51,93 +68,90 @@ git clone https://github.com/ashwinmaurya-84/Expense_Tracker.git
 cd Expense_Tracker
 ```
 
-### 2. Configure environment variables
-
-Create the backend environment file using `backend/.env.example` as a reference.
-
-Configure the required variables:
-
-```env
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-```
-
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-Use your own credentials and secrets. Never commit `.env` files.
-
-### 3. Install dependencies
+### 2. Configure the backend
 
 ```bash
 cd backend
 npm install
 ```
 
-In a separate terminal:
+Create a `.env` file inside the `backend` directory:
+
+```env
+PORT=5000
+CLIENT_URL=http://localhost:5173
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_strong_private_secret
+```
+
+Replace the MongoDB URI and JWT secret with your own values. Never commit real credentials to GitHub.
+
+Start the backend:
+
+```bash
+npm run dev
+```
+
+The API should be available at `http://localhost:5000`.
+
+### 3. Configure the frontend
+
+Open a second terminal:
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 4. Start the application
+Create a `.env` file inside `frontend`:
 
-Start the backend from the `backend` directory:
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Start the frontend from the `frontend` directory:
-
-```bash
-npm run dev
-```
-
-Open the local URL displayed by Vite in your terminal.
-
-## Testing
-
-Run the backend test suite from the `backend` directory:
-
-```bash
-npm test
-```
-
-The current backend test suite contains 36 passing tests across 3 test suites.
-
-Run frontend lint checks from the `frontend` directory:
-
-```bash
-npm run lint
-```
-
-Build the frontend for production:
-
-```bash
-npm run build
-```
+Open the local URL displayed by Vite, usually `http://localhost:5173`.
 
 ## API Documentation
 
-Base URL: `http://localhost:5000`
+**Production base URL:** `https://expense-tracker-api-kf0g.onrender.com`
 
-All expense routes and the profile route require JWT authentication, except registration and login.
+All expense endpoints and the profile endpoint require authentication unless stated otherwise.
 
 ### Authentication
 
 | Method | Endpoint | Description | Authentication |
 |---|---|---|---|
-| POST | `/auth/register` | Register a new user | No |
-| POST | `/auth/login` | Log in and receive authentication data | No |
-| GET | `/auth/profile` | Retrieve the authenticated user's profile | Bearer token |
+| GET | `/` | Check API availability | No |
+| POST | `/auth/register` | Register a user | No |
+| POST | `/auth/login` | Log in | No |
+| GET | `/auth/profile` | Retrieve the authenticated user's profile | JWT required |
 
-### Expenses
+Registration request example:
+
+```json
+{
+  "name": "Your Name",
+  "email": "you@example.com",
+  "password": "YourStrongPassword1"
+}
+```
+
+Login request example:
+
+```json
+{
+  "email": "you@example.com",
+  "password": "YourStrongPassword1"
+}
+```
+
+### Expense Management
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -146,43 +160,21 @@ All expense routes and the profile route require JWT authentication, except regi
 | GET | `/expenses/:id` | Retrieve an expense by ID |
 | PATCH | `/expenses/:id` | Update an expense |
 | DELETE | `/expenses/:id` | Delete an expense |
-| GET | `/expenses/summary` | Retrieve expense summary |
-| GET | `/expenses/summary/monthly` | Retrieve monthly expense summary |
+| GET | `/expenses/summary` | Retrieve an expense summary |
+| GET | `/expenses/summary/monthly` | Retrieve monthly expense summaries |
 | GET | `/expenses/export` | Export expenses as CSV |
 
 ### Authentication Header
 
-For protected endpoints, send the JWT in the request header:
+For protected endpoints, include the JWT returned by the login endpoint:
 
 ```http
-Authorization: Bearer <JWT_TOKEN>
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-### Expense List Query Parameters
-
-The `GET /expenses` endpoint supports these query parameters:
-
-| Parameter | Description | Default |
-|---|---|---|
-| `category` | Filter by category | No filter |
-| `startDate` | Filter from a start date | No minimum date |
-| `endDate` | Filter through an end date | No maximum date |
-| `page` | Page number (positive integer) | `1` |
-| `limit` | Results per page (1–100) | `10` |
-| `sortBy` | Sort field: `date`, `amount`, `title`, or `createdAt` | `date` |
-| `order` | Sort direction: `asc` or `desc` | `desc` |
-
-Example:
-
-```http
-GET /expenses?category=Food&page=1&limit=10&sortBy=date&order=desc
-```
-
-### Create Expense
+### Create an Expense
 
 `POST /expenses`
-
-Example request body:
 
 ```json
 {
@@ -193,13 +185,11 @@ Example request body:
 }
 ```
 
-`title`, `amount`, and `category` are required. `amount` must be a positive number. `date` is optional.
-
-### Update Expense
+### Update an Expense
 
 `PATCH /expenses/:id`
 
-Send one or more fields to update:
+Send only the fields you want to update:
 
 ```json
 {
@@ -208,34 +198,99 @@ Send one or more fields to update:
 }
 ```
 
+### Filtering, Sorting, and Pagination
+
+Example request:
+
+```http
+GET /expenses?category=Food&page=1&limit=10&sortBy=date&order=desc
+```
+
+Supported query parameters:
+
+| Parameter | Purpose |
+|---|---|
+| `category` | Filter by category |
+| `startDate` | Filter from a start date |
+| `endDate` | Filter through an end date |
+| `page` | Page number |
+| `limit` | Number of records per page, up to 100 |
+| `sortBy` | `date`, `amount`, `title`, or `createdAt` |
+| `order` | `asc` or `desc` |
+
 ### Export Expenses
 
-`GET /expenses/export`
+Request `GET /expenses/export` with a valid JWT to download the matching expense records as `expenses.csv`. Category, date range, and sorting parameters are supported.
 
-Returns a CSV file named `expenses.csv` with the columns `Title`, `Amount`, `Category`, and `Date`. The endpoint accepts category, date-range, and sorting query parameters.
+## Running Tests
 
+From the backend directory:
 
-## Project Status
+```bash
+npm test
+```
 
-- [x] Backend setup
+The backend test suite uses Jest and Supertest.
+
+## Production Environment Variables
+
+Configure these variables in the hosting provider's environment settings.
+
+### Backend
+
+| Variable | Description |
+|---|---|
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret used to sign and verify JWTs |
+| `CLIENT_URL` | Deployed frontend origin allowed by CORS |
+| `PORT` | Port supplied by the hosting platform; defaults to `5000` locally |
+
+### Frontend
+
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend API base URL |
+
+Production frontend configuration:
+
+```env
+VITE_API_URL=https://expense-tracker-api-kf0g.onrender.com
+```
+
+## Deployment
+
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Database:** MongoDB Atlas
+
+Ensure the backend's `CLIENT_URL` matches the deployed frontend origin and the frontend's `VITE_API_URL` points to the backend. Redeploy after changing production environment variables.
+
+## Security Notes
+
+- Passwords are hashed before being stored.
+- Protected endpoints require JWT authentication.
+- Login requests are rate-limited.
+- Helmet adds security-related HTTP headers.
+- Keep `.env` files and production secrets out of version control.
+
+## Roadmap
+
+- [x] Backend setup and database connection
 - [x] Authentication
-- [x] Expense CRUD
-- [x] Filtering, sorting, and pagination
-- [x] Monthly analytics
+- [x] Expense CRUD operations
+- [x] Filtering and pagination
+- [x] Expense summaries and monthly analytics
 - [x] Frontend integration
-- [x] Backend automated tests
-- [x] Frontend lint and production build checks
-- [ ] Production deployment
-
-## Future Improvements
-
-- Production deployment
-- API documentation with request and response examples
-- Performance and bundle-size optimization
+- [x] Automated backend tests
+- [x] Deployment
+- [x] API documentation
 
 ## Author
 
 **Ashwin Maurya**
 
-GitHub: [ashwinmaurya-84](https://github.com/ashwinmaurya-84)
-~
+- GitHub: https://github.com/ashwinmaurya-84
+
+---
+
+*Built as a full-stack project to practice REST API development, authentication, database integration, validation, testing, and deployment.*
