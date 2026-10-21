@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import ExpenseForm from "./ExpenseForm";
 import Navbar from "./Navbar";
+import Profile from "./Profile";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 });
@@ -20,6 +21,21 @@ function Dashboard({ onLogout }) {
   const [editingExpense, setEditingExpense] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState("");
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+        const data = await response.json();
+        if (!response.ok) { setProfileError(data.message || "Failed to load your profile."); return; }
+        setProfile(data.data.user);
+      } catch { setProfileError("Unable to load your profile."); }
+    };
+    loadProfile();
+  }, []);
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -88,7 +104,8 @@ function Dashboard({ onLogout }) {
 
   return (
     <main className="app-shell">
-      <Navbar userName="Ashwin" onLogout={onLogout} />
+      <Navbar userName={profile?.name || "there"} onProfile={() => setIsProfileOpen(true)} onLogout={onLogout} />
+      {isProfileOpen && <Profile user={profile} error={profileError} onClose={() => setIsProfileOpen(false)} />}
       <section className="page-intro">
         <div><p className="eyebrow">Overview</p><h1>Your spending, at a glance.</h1><p className="intro-copy">Review recent expenses and stay on top of your monthly habits.</p></div>
       </section>

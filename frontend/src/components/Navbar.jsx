@@ -1,4 +1,4 @@
-function Navbar({ userName, onLogout }) {
+function Navbar({ userName, onProfile, onLogout }) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -7,6 +7,7 @@ function Navbar({ userName, onLogout }) {
       </div>
       <div className="account-actions">
         <span className="welcome">Welcome back, {userName}</span>
+        <button className="button button-quiet" onClick={onProfile}>Profile</button>
         <button className="button button-quiet" onClick={onLogout}>
           Log out
         </button>
